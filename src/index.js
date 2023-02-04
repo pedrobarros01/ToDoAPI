@@ -31,7 +31,7 @@ app.post('/users',(request, response) => {
   const {name, username} = request.body;
   const checkExistUser = users.some(user => user.username === username);
   if(checkExistUser){
-    return response.status(400).send({error: "Já existe tal cadastro desse usuário"});
+    return response.status(400).json({error: "Já existe tal cadastro desse usuário"});
   }
   const newUser = {
     id: uuidv4(),
@@ -63,7 +63,7 @@ app.post('/todos', checksExistsUserAccount, (request, response) => {
     created_at: new Date()
   }
   user.todos.push(toDoOfUser)
-  return response.json(toDoOfUser);
+  return response.status(201).json(toDoOfUser);
   
 
 });
@@ -73,28 +73,37 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
   const {title, deadline} = request.body;
   const {id} = request.params;
   const toDo = findToDo(id, user.todos);
+  if(!toDo){
+    return response.status(404).json({error: "ToDo não encontrado"});
+  }
   toDo.title = title;
-  toDo.deadline = new Date(deadline);
-  return response.status(201).send();
+  toDo.deadline = new Date(deadline).toISOString();
+
+  return response.status(201).json(toDo);
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
   const {id} = request.params;
   const {user} = request;
   const toDo = findToDo(id, user.todos);
+  if(!toDo){
+    return response.status(404).json({error: "ToDo não encontrado"});
+  } 
   toDo.done = true;
-  return response.status(200).send();
+  return response.status(201).json(toDo);
 
 });
 
 app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
   const {id} = request.params;
   const {user} = request;
-  const list = user.todos.filter(todo => todo.id !== id);
-  console.log(list);
-  user.todos = list;
-  
-  return response.status(200).send();
+  const toDo = findToDo(id, user.todos);
+  const indexList = user.todos.findIndex(todo => todo.id === id);
+  if(indexList === -1){
+    return response.status(404).json({error: "Todo não encontrado"})
+  }
+  user.todos.splice(indexList, 1);
+  return response.status(204).send();
 });
 
 module.exports = app;
